@@ -1,4 +1,5 @@
-# Creating an Ubuntu Virtual Machine in Azure
+
+# Agenda is to create 3 VMs(One Master and Two Slave VMs)with image Linux (ubuntu 20.04) minimum specs Standard B2s (2 vcpus, 4 GiB memory)
 
 ## Sign in to the Azure Portal:
    - Navigate to the Azure Management Portal at [https://portal.azure.com/](https://portal.azure.com/).
@@ -33,3 +34,8 @@
 ## Connect to the Virtual Machine:
    - Once the virtual machine is deployed, you can connect to it using SSH or RDP, depending on the OS and configuration.
    - Use your preferred SSH client to connect to the Ubuntu instance.
+
+
+## Now We have 3 VMs Connect it with MobaXTerm
+   - Use your preferred SSH client MobaXTerm to connect to all the Ubuntu instance.
+
