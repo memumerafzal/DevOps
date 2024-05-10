@@ -59,4 +59,45 @@ This command does the following:
 Upon execution of this command, Nexus will be reachable on your host machine at http://IP:8081.
 
 
+## Retrieve Nexus Initial Password
+The provided instructions are accurate for obtaining the Nexus password stored within the container. Here's a breakdown of the procedure:
+
+1. **Identify Container ID**: Begin by locating the ID of the Nexus container. You can achieve this by executing:
+
+    ```bash
+    docker ps
+    ```
+
+    This command lists all active containers along with their respective IDs.
+
+2. **Access Container's Shell**: Once you have the container's ID, utilize the `docker exec` command to access its shell:
+
+    ```bash
+    docker exec -it <container_ID> /bin/bash
+    ```
+
+    Replace `<container_ID>` with the actual ID of the Nexus container.
+
+3. **Navigate to Nexus Directory**: Within the container's shell, navigate to the directory housing Nexus's configuration:
+
+    ```bash
+    cd sonatype-work/nexus3
+    ```
+
+4. **Retrieve Admin Password**: Proceed to view the admin password by displaying the contents of the `admin.password` file:
+
+    ```bash
+    cat admin.password
+    ```
+
+5. **Exit Container Shell**: Upon obtaining the password, exit the container's shell:
+
+    ```bash
+    exit
+    ```
+
+This methodology facilitates access to the Nexus admin password stored within the container. Ensure the confidentiality of this password as it grants administrative privileges to your Nexus instance.
+
+
+
 
