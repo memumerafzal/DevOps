@@ -55,4 +55,6 @@ This command will download the `sonarqube:lts-community` Docker image from Docke
 
 3. Access SonarQube by opening a web browser and navigating to `http://VmIP:9000`.
 
-This will start the SonarQube server, and you should be able to access it using the provided URL. If you're running Docker on a remote server or a different port, replace `localhost` with the appropriate hostname or IP address and adjust the port accordingly.
+This will start the SonarQube server, and you should be able to access it using the provided URL.
+
+If you're running Docker on a remote server or a different port, replace `localhost` with the appropriate hostname or IP address and adjust the port accordingly.
