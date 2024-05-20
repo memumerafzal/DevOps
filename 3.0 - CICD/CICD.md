@@ -22,5 +22,12 @@
 
    - SonarQube is a code quality and security analysis tool.
    - This plugin integrates Jenkins with SonarQube by providing a scanner that analyzes code during builds.
-   - You can install it from the Jenkins plugin manager as described above.
+   - You can install it from the Jenkins plugin manager as described above.   
+5. ** Kubernetes CLI:
+
+   - This plugin allows Jenkins to interact with Kubernetes clusters using the Kubernetes command-line tool (kubectl).
+   - It's useful for tasks like deploying applications to Kubernetes from Jenkins jobs.
+   - Install it through the plugin manager.
+   
+6. ** Kubernetes:
 
