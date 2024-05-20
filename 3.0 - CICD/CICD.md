@@ -22,4 +22,5 @@
 
    - SonarQube is a code quality and security analysis tool.
    - This plugin integrates Jenkins with SonarQube by providing a scanner that analyzes code during builds.
-   - You can install it from the Jenkins plugin manager as described above4
+   - You can install it from the Jenkins plugin manager as described above.
+
