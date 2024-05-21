@@ -30,4 +30,7 @@
    - Install it through the plugin manager.
    
 6. ** Kubernetes:
+   - This plugin integrates Jenkins with Kubernetes by allowing Jenkins agents to run as pods within a Kubernetes cluster.
+   - It provides dynamic scaling and resource optimization capabilities for Jenkins builds.
+   - Install it from the Jenkins plugin manager.
 
