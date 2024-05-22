@@ -33,4 +33,9 @@
    - This plugin integrates Jenkins with Kubernetes by allowing Jenkins agents to run as pods within a Kubernetes cluster.
    - It provides dynamic scaling and resource optimization capabilities for Jenkins builds.
    - Install it from the Jenkins plugin manager.
+   
+7. ** Docker:
+   - This plugin allows Jenkins to interact with Docker, enabling Docker builds and integration with Docker registries.
+   - You can use it to build Docker images, run Docker containers, and push/pull images from Docker registries.
+   - Install it from the plugin manager.
 
