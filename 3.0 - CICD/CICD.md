@@ -38,4 +38,9 @@
    - This plugin allows Jenkins to interact with Docker, enabling Docker builds and integration with Docker registries.
    - You can use it to build Docker images, run Docker containers, and push/pull images from Docker registries.
    - Install it from the plugin manager.
+   
+8. **Docker Pipeline Step:
+   - This plugin extends Jenkins Pipeline with steps to build, publish, and run Docker containers as part of your Pipeline scripts.
+   - It provides a convenient way to manage Docker containers directly from Jenkins Pipelines.
+   - Install it through the plugin manager like the others.
 
