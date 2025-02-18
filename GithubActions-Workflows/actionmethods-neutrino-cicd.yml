@@ -1,0 +1,53 @@
+name: Pipeline
+on:
+  push:
+    branches:
+      - release-prod-pipeline
+          
+jobs:
+  build:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '14.21.3'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Angular CLI
+        run: npm install -g @angular/cli@14.1.0
+
+      - name: Build Angular Project
+        run: |
+          ng build --configuration production
+          ls
+          
+      - name: Verify files
+        run: ls dist/generic-project/
+        
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generic-project
+          path: dist/specific-pathto-project-directory/
+
+  deploy:
+    name: Deploy to Windows Server
+    runs-on: windows-server-azure
+    needs: build
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: generic-project
+          path: downloaded_artifact
+          
+      - name: BackingUp and deploying
+        run: python ./scripts/script.py 
+        shell: cmd
