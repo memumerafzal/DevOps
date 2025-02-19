@@ -39,7 +39,7 @@ jobs:
 
   deploy:
     name: Deploy to Windows Server
-    runs-on: windows-server-azure
+    runs-on: windows-server-azure #Where runner is running as service
     needs: build
     steps:
       - name: Download Artifact
@@ -49,5 +49,5 @@ jobs:
           path: downloaded_artifact
           
       - name: BackingUp and deploying
-        run: python ./scripts/script.py 
+        run: python F:\Pipelines-Data\BackingUp_and_Deploying.py
         shell: cmd
