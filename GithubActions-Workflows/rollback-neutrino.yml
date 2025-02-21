@@ -1,0 +1,24 @@
+name: Download Artifact Pipeline
+on:
+#   push:
+#     branches:
+#       - release-prod-pipeline
+  
+    workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: windows-server-agilebills
+    steps:
+      - name: Download Artifact from Other Workflow
+        uses: actions/download-artifact@v4
+        with:
+          name: template-rpm-       # Must match the artifact name in the source workflow
+          path: downloaded_artifact
+          run-id: 13334366281               # Replace with the source workflow's run ID
+          repository: neurtinorpm/neutrino2.0_fe  # Repository where the artifact was uploaded
+          github-token: ${{ secrets.CROSS_REPO_PAT }}  # Required for cross-workflow access
+
+      - name: BackingUp and deploying
+        run: python G:\script.py
+        shell: cmd
