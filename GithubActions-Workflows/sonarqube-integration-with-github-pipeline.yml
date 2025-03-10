@@ -1,0 +1,77 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - sonar-test
+jobs:
+  build:
+    name: Analyze
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: sonarsource/sonarqube-scan-action@v4
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+      - name: Fail if Quality Gate fails
+        if: steps.sonarqube-quality-gate-check.outputs.quality-gate-status != 'PASSED'
+        run: exit 1
+
+  filebuild:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+    needs: build  # Add dependency on build job
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '14.21.3'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Install Angular CLI
+        run: npm install -g @angular/cli@14.1.0
+
+      - name: Build Angular Project
+        run: |
+          ng build --configuration production
+          ls
+      - name: Verify files
+        run: ls dist/template-rpm-adnare/
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Neutrino_FE
+          path: dist/template-rpm-adnare/
+  deploy:
+    name: Deploy to Windows Server
+    runs-on: neutrino-fe-production-server
+    needs: [build, filebuild]  # Wait for both previous jobs
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: Neutrino_FE
+          path: downloaded_artifact_fe_UAT
+      - name: BackingUp and deploying
+        run: python F:\Pipelines-Data\BackingUp_and_Deploying_FE_UAT.py
+        shell: cmd
