@@ -1,8 +1,8 @@
 # Terraform Azure VM Deployment
 
 ## Prerequisites
-- Install [Terraform](https://www.terraform.io/downloads)
-- Install [Azure CLI](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
+- Install [Terraform URL](https://www.terraform.io/downloads)
+- Install [Azure CLI URL](https://docs.microsoft.com/en-us/cli/azure/install-azure-cli)
 
 ## Setup Instructions
 1. Authenticate to Azure:
