@@ -1,0 +1,21 @@
+#Error response from daemon: Cannot link to a non running container: /sonarqube-db AS /sonarqube/db
+#Error: failed to start containers: 4bac714e867b
+
+The error "Cannot link to a non-running container: /sonarqube-db AS /sonarqube/db" means that the SonarQube container is trying to link to the database container (sonarqube-db), but the database container is either:
+Not running
+Crashed or exited
+Not created properly
+
+Run the following command to see if sonarqube-db is running:
+docker ps -a
+
+
+If sonarqube-db is stopped, check logs:
+docker logs sonarqube-db
+
+Try starting the sonarqube-db container:
+docker start sonarqube-db
+
+Then, restart the SonarQube container:
+docker start 4bac714e867b
+
