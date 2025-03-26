@@ -1,0 +1,86 @@
+name: demo_pipeline
+
+on:
+  push:
+    branches:
+      - demo_pipeline
+
+jobs:
+  build:
+    name: Test and Analyze
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: 'zulu'
+
+      - name: Cache SonarQube packages
+        uses: actions/cache@v4
+        with:
+          path: ~\.sonar\cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      - name: Cache SonarQube scanner
+        id: cache-sonar-scanner
+        uses: actions/cache@v4
+        with:
+          path: .\.sonar\scanner
+          key: ${{ runner.os }}-sonar-scanner
+          restore-keys: ${{ runner.os }}-sonar-scanner
+
+      - name: Set up .NET 7.0 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 7.0.100
+      - name: SettingUp MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      # - name: Install Visual Studio Build Tools
+      #   shell: powershell
+      #   run: |
+      #     choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.WebBuildTools --includeRecommended --quiet --norestart"
+
+      - name: Install SonarQube scanner
+        if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          New-Item -Path .\.sonar\scanner -ItemType Directory
+          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+      - name: Create .scannerwork directory
+        shell: powershell
+        run: |
+          New-Item -Path .scannerwork -ItemType Directory -Force
+
+      - name: Build and analyze
+        shell: powershell
+        run: |
+          $metadataPath = "$env:GITHUB_WORKSPACE\.scannerwork\report-task.txt"
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"Alfamd_EDI_Demo" `
+          /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+          /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" `
+          /d:sonar.scanner.metadataFilePath="$metadataPath"
+          msbuild /p:Configuration=Release /p:OutputPath=./publish /p:DeployOnBuild=true /p:PublishProfile=FolderProfile /p:GenerateDocumentation=false
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+      - name: SonarQube Quality Gate check
+        id: sonarqube-quality-gate-check
+        uses: sonarsource/sonarqube-quality-gate-action@master
+        with:
+          pollingTimeoutSec: 600
+          scanMetadataReportFile: ".scannerwork/report-task.txt"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+        #Step 8: Stop pipeline if SonarQube Quality Gate Fails
+      - name: Fail if Quality Gate fails
+        if: steps.sonarqube-quality-gate-check.outputs.quality-gate-status != 'PASSED'
+        run: exit 1
+ 
