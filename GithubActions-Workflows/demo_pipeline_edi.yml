@@ -83,4 +83,148 @@ jobs:
       - name: Fail if Quality Gate fails
         if: steps.sonarqube-quality-gate-check.outputs.quality-gate-status != 'PASSED'
         run: exit 1
- 
+  filebuild:
+     name: Building and Packing Artifact
+     runs-on: windows-latest
+     needs: build  # Add dependency on build job
+     steps:
+       - name: Checkout Code
+         uses: actions/checkout@v4
+       - name: Setting up Dotnet
+         uses: actions/setup-dotnet@v4
+         with:
+          dotnet-version: 7.0.100
+       - name: SettingUp MSBuild
+         uses: microsoft/setup-msbuild@v2
+      #  - uses: actions/setup-python@v5
+      #    with:
+      #      python-version: '3.13'     
+       - name: Building Project
+         run: |
+            msbuild /p:Configuration=Release /p:OutputPath=./publish /p:DeployOnBuild=true /p:PublishProfile=FolderProfile /p:GenerateDocumentation=false
+       - name: Adjusting File for deployment
+         shell: python
+         run: | 
+            import shutil
+            import os
+            import glob
+            os.remove(r"AdnarepmEDI\\publish\\_PublishedWebsites\\AdnarepmEDI\\Web.Debug.config")
+            os.remove(r"AdnarepmEDI\\publish\\_PublishedWebsites\\AdnarepmEDI\\Web.config")
+            os.remove(r"AdnarepmEDI\\publish\\_PublishedWebsites\\AdnarepmEDI\\Web.Release.config")
+
+            shutil.move(r"AdnarepmEDI\\publish\\_PublishedWebsites\\AdnarepmEDI\\AdnarepmEDI.XmlSerializers.dll", r"AdnarepmEDI\\publish\\_PublishedWebsites\\AdnarepmEDI\\bin")
+
+            directory = r"AdnarepmEDI\\publish\\_PublishedWebsites\\AdnarepmEDI\\bin"
+
+            # Find all .xml files in the directory
+            xml_files = glob.glob(os.path.join(directory, "*.xml"))
+
+            # Loop through the list of XML files and remove each one
+            for xml_file in xml_files:
+              try:
+                os.remove(xml_file)
+                print(f"Deleted: {xml_file}")
+              except OSError as e:
+                print(f"Error deleting {xml_file}: {e}")
+    
+       - name: Verifying Files
+         run:  ls AdnarepmEDI/publish/_PublishedWebsites/AdnarepmEDI
+       - name: Upload Artifact
+         uses: actions/upload-artifact@v4
+         with:
+          name: Alfamd_EDI_Demo
+          path: AdnarepmEDI/publish/_PublishedWebsites/AdnarepmEDI
+  deploy:
+    name: Deploying to Windows Server
+    runs-on: uat-server
+    needs: [build,  filebuild]  # Ensure both build and filebuild complete successfully
+        
+    steps:
+     - name: Set Execution Policy
+       run: |
+          Set-ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
+          Write-Output '✅ Execution Policy Set Successfully'
+       shell: powershell
+        
+     - name: Download Artifact
+       uses: actions/download-artifact@v4
+       with:
+        name: Alfamd_EDI_Demo
+        path: downloaded_artifact_edi_demo
+        
+     - name: Stopping IIS
+       run: |
+         Import-Module WebAdministration
+         Stop-Website -Name "AdnarePM_EDI"
+         Write-Output '✅ IIS Stopped Successfully'
+         shell: powershell
+       
+     - name: Backing Up and Deploying
+       shell: python
+       run: |
+          import sys
+          sys.stdout.reconfigure(encoding='utf-8')  # Ensure UTF-8 output
+          from datetime import date
+          import os
+          import shutil
+          
+          sourcedir = r"F:\\Github_actions\\runner-4\\actions-runner\\_work\\adnarepm_edi\\adnarepm_edi\\downloaded_artifact_edi_demo"
+          dirpath = r"C:\\inetpub\\wwwroot\\AdnarePM_EDI"
+          basebackupdir = f'F:\\IIS\\AlfaMD\\Backups\\Backup_{date.today()}\\EDI'
+          basereleasedir = f'F:\\IIS\\AlfaMD\\Releases\\Release_{date.today()}\\EDI'
+          
+          # Function to Generate Unique Backup Path
+          def get_unique_path(path):
+              if not os.path.exists(path):
+                  return path
+              i = 1
+              new_path = f"{path} ({i})"
+              while os.path.exists(new_path):
+                  i += 1
+                  new_path = f"{path} ({i})"
+              return new_path
+          
+          # Check if source directory exists
+          if not os.path.exists(sourcedir):
+              print(f"❌ ERROR: Source directory {sourcedir} does not exist!")
+              exit(1)
+          
+          # Backup existing IIS site
+          backupdir = get_unique_path(basebackupdir)
+          shutil.copytree(dirpath, backupdir, dirs_exist_ok=True)
+          
+          # Remove unnecessary files from the source directory
+          for file in ["wwwroot", "appsettings.json", "web.config"]:
+              filepath = os.path.join(sourcedir, file)
+              if os.path.exists(filepath):
+                  if os.path.isdir(filepath):
+                      shutil.rmtree(filepath)
+                  else:
+                      os.remove(filepath)
+                  print(f"✅ Removed: {filepath}")
+              else:
+                  print(f"⚠️ {file} not found, skipping.")
+          
+          # Backup new release
+          releasedir = get_unique_path(basereleasedir)
+          shutil.copytree(sourcedir, releasedir, dirs_exist_ok=True)
+          
+          # Ensure destination directory exists
+          if not os.path.exists(dirpath):
+              os.mkdir(dirpath)
+          
+          # Deploy new files to IIS folder
+          shutil.copytree(sourcedir, dirpath, dirs_exist_ok=True)
+          
+          # Cleanup source directory
+          shutil.rmtree(sourcedir)
+          print("✅ Deployment completed successfully")
+
+                  
+     - name: Starting IIS
+       shell: powershell
+       run: |
+          Import-Module WebAdministration
+          Start-Website -Name "AdnarePM_EDI"
+          Write-Output "✅ IIS Started Successfully"
+    
