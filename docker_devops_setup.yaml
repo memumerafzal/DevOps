@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  dotnet:
+    image: mcr.microsoft.com/dotnet/sdk:5.0
+    container_name: dotnet_sdk
+    tty: true
+
+  git:
+    image: alpine/git
+    container_name: git_client
+    tty: true
+
+  azure_cli:
+    image: mcr.microsoft.com/azure-cli
+    container_name: azure_cli
+    tty: true
+
+  powershell:
+    image: mcr.microsoft.com/powershell
+    container_name: powershell_7
+    tty: true
+
+  sqltools:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: sql_tools
+    tty: true
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: sql_server
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=StrongPassw0rd!
+    ports:
+      - "1433:1433"
+    tty: true
+
+  devops_agent:
+    build: ./devops-agent
+    container_name: azure_devops_agent
+    tty: true
+
+# devops-agent/Dockerfile example needs to be created separately for Azure DevOps agent setup
