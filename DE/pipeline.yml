@@ -1,0 +1,92 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Code build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET 8.0 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Integration
+        run: | 
+          # Uncomment the following line if Telerik NuGet source is required
+          # dotnet nuget add source -n telerik -u ${{ secrets.DEX_TELERIK_EMAIL }} -p ${{ secrets.DEX_TELERIK_PASS }} --store-password-in-clear-text https://nuget.telerik.com/v3/index.json
+          dotnet restore DoctorsExpress-PHML.sln --configfile NuGet.Config
+          dotnet publish -c Release -o out --no-restore --configfile NuGet.Config
+
+      - name: Copy artifacts to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          source: "out/*"
+          target: "/opt/live/incoming/"
+
+  backup:
+    name: Backing up code
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Taking existing code backup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          script: |
+            echo "Starting backup process..."
+            ts=$(date +'%Y%m%d_%H%M%S')
+            mkdir -p "/opt/live/dev-env/backups/docexpress_backup_$ts"
+            cp -r /opt/live/dev-env/main/* "/opt/live/dev-env/backups/docexpress_backup_$ts"
+            echo "Backup completed successfully."
+
+  deploy:
+    name: Code deployment
+    runs-on: ubuntu-latest
+    needs: [backup, build]
+    steps:
+      - name: Deploying code
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          script: |
+            chown -R root:root /opt/live/incoming/out/
+            cd /opt/live/dev-env && docker compose down
+            rm -rf /opt/live/dev-env/main/*
+            cp -r /opt/live/incoming/out/* /opt/live/dev-env/main/
+            cp /opt/live/dev-env/ref/dockerfile /opt/live/dev-env/main/
+            cd /opt/live/dev-env && docker compose up -d --build 
+  Cleanup:
+    name: Cleanup job
+    runs-on: ubuntu-latest
+    needs: [build, backup, deploy]
+    if: always()
+    steps:
+      - name: Cleanup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          script: |
+            rm -fr /opt/live/incoming/*
