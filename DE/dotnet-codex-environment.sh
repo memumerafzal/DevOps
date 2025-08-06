@@ -8,10 +8,16 @@ curl -sSL https://dot.net/v1/dotnet-install.sh -o dotnet-install.sh
 chmod +x dotnet-install.sh
 ./dotnet-install.sh --channel "$DOTNET_CHANNEL" --install-dir "$INSTALL_DIR"
 
+# Export for local session
 export DOTNET_ROOT="$INSTALL_DIR"
 export PATH="$INSTALL_DIR:$PATH"
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
+# Make dotnet globally accessible (fix for Codex)
+echo '🔗 Linking dotnet CLI to /usr/local/bin...'
+ln -sf "$INSTALL_DIR/dotnet" /usr/local/bin/dotnet
+
+# Verify installation
 echo '✅ .NET SDK installed:'
 dotnet --info
 
@@ -24,7 +30,6 @@ if [[ -z "$TELERIK" || -z "$TELERIK_API_KEY" ]]; then
   exit 1
 fi
 
-# Build Basic Auth string without line breaks
 BASIC_AUTH=$(echo -n "${TELERIK}:${TELERIK_API_KEY}" | base64 | tr -d '\n')
 
 echo '🧹 Clearing existing NuGet config...'
@@ -61,7 +66,6 @@ EOF
 echo '✅ NuGet.Config created'
 
 echo '🔍 Testing Telerik NuGet feed connectivity...'
-in
 echo "Testing v3 endpoint..."
 TELERIK_V3_URL="https://nuget.telerik.com/v3/index.json"
 HTTP_CODE_V3=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Basic ${BASIC_AUTH}" "${TELERIK_V3_URL}")
