@@ -1,0 +1,75 @@
+name: pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  backup:
+    name: Backing up code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Taking existing code backup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          script: |
+               echo "Starting backup process..."
+               ts=$(date +'%Y%m%d_%H%M%S')
+               mkdir -p "/opt/live/drug-api/backups/drug_api_backup_$ts"
+               cp -r /opt/live/drug-api/main/* "/opt/live/drug-api/backups/drug_api_backup_$ts"
+               echo "Backup completed successfully." 
+  deploy:
+    name: Deploying on Server
+    runs-on: ubuntu-latest
+    needs: backup
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Moving Codebase into a single Package
+        run: |
+              mkdir -p drug-api
+              rsync -a --exclude 'drug-api' ./ drug-api/
+      - name: Copy artifacts to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          source: "./drug-api/"
+          target: "/opt/live/incoming/"
+      - name: Deployment
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          script: |
+              chown -R root:root /opt/live/incoming/drug-api/
+              cd /opt/live/drug-api && docker compose down
+              rm -rf /opt/live/drug-api/main/*
+              cp -r /opt/live/incoming/drug-api/* /opt/live/drug-api/main/
+              cd /opt/live/drug-api && docker compose up -d --build   
+  Cleanup:
+    name: Cleanup job
+    runs-on: ubuntu-latest
+    needs: [backup, deploy]
+    if: always()
+    steps:
+      - name: Cleanup
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEX_HOST }}
+          username: ${{ secrets.DEX_USERNAME }}
+          password: ${{ secrets.DEX_PASSWORD }}
+          port: ${{ secrets.DEX_PORT }}
+          script: |
+            rm -fr /opt/live/incoming/*
